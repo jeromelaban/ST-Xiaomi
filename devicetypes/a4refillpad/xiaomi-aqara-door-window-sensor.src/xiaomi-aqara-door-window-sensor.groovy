@@ -11,6 +11,9 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
+ *  Fork by @jeromelaban
+ *  2017-10-28: Aded for device id 5F01, fixed battery reading.
+ * 
  * Based on original DH by Eric Maycock 2015 and Rave from Lazcad
  *  change log:
  *	added DH Colours
@@ -25,22 +28,22 @@
  */
 metadata {
    definition (name: "Xiaomi Aqara Door/Window Sensor", namespace: "a4refillpad", author: "a4refillpad") {
-   capability "Configuration"
-   capability "Sensor"
-   capability "Contact Sensor"
-   capability "Refresh"
-   capability "Battery"
-   capability "Health Check"
+		capability "Configuration"
+   		capability "Sensor"
+   		capability "Contact Sensor"
+   		capability "Refresh"
+   		capability "Battery"
+   		capability "Health Check"
    
-   attribute "lastCheckin", "String"
-   attribute "lastOpened", "String"
+   		attribute "lastCheckin", "String"
+   		attribute "lastOpened", "String"
+
+   		fingerprint profileId: "0104", deviceId: "5F01", inClusters: "0000, 0003, FFFF, 0006", outClusters: "0000, 0004, FFFF", manufacturer: "LUMI", model: "lumi.sensor_magnet.aq2", deviceJoinName: "Xiaomi Door Sensor"
    
-   fingerprint profileId: "0104", deviceId: "0104", inClusters: "0000, 0003", outClusters: "0000, 0004", manufacturer: "LUMI", model: "lumi.sensor_magnet.aq2", deviceJoinName: "Xiaomi Aqara Door Sensor"
-   
-   command "enrollResponse"
-   command "resetClosed"
-   command "resetOpen"
-   command "Refresh"
+   		command "enrollResponse"
+   		command "resetClosed"
+   		command "resetOpen"
+   		command "Refresh"
    }
     
    simulator {
@@ -76,7 +79,7 @@ metadata {
       standardTile("refresh", "command.refresh", inactiveLabel: false) {
 			state "default", label:'refresh', action:"refresh.refresh", icon:"st.secondary.refresh-icon"
 	  }      
-
+      
       main (["contact"])
       details(["contact","battery","icon","lastopened","resetClosed","resetOpen","refresh"])
    }
@@ -106,7 +109,7 @@ def parse(String description) {
 }
 
 private Map getBatteryResult(rawValue) {
-    def linkText = getLinkText(device)
+	def linkText = getLinkText(device)
     //log.debug '${linkText} Battery'
 
 	//log.debug rawValue
@@ -116,14 +119,14 @@ private Map getBatteryResult(rawValue) {
 		value: '--'
 	]
     
-	def volts = rawValue / 1
-    def maxVolts = 100
-
-	if (volts > maxVolts) {
-				volts = maxVolts
+    def maxBatt = 100
+    def battLevel = Math.round(rawValue * 100 / 255)
+	
+	if (battLevel > maxBatt) {
+		battLevel = maxBatt
     }
    
-    result.value = volts
+    result.value = battLevel
 	result.descriptionText = "${linkText} battery was ${result.value}%"
 
 	return result
