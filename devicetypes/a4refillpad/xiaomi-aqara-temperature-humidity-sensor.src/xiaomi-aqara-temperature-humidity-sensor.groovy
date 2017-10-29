@@ -10,6 +10,9 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
+ *  Fork by @jeromelaban
+ *  2017-10-28: Added barometric pressure support, adjusted color temperatures, adjusted for device id 5F01.
+ * 
  *  2017-03 First release of the Xiaomi Temp/Humidity Device Handler
  *  2017-03 Includes battery level (hope it works, I've only had access to a device for a limited period, time will tell!)
  *  2017-03 Last checkin activity to help monitor health of device and multiattribute tile
@@ -25,23 +28,29 @@
  *
  */
 metadata {
-	definition (name: "Xiaomi Aqara Temperature Humidity Sensor", namespace: "a4refillpad", author: "a4refillpad") {
+	definition (name: "Xiaomi Aqara Temperature Sensor", namespace: "a4refillpad", author: "a4refillpad") {
 		capability "Temperature Measurement"
 		capability "Relative Humidity Measurement"
 		capability "Sensor"
         capability "Battery"
         capability "Refresh"
-        capability "Health Check"
         
         attribute "lastCheckin", "String"
+        attribute "pressure", "String"
         
-		fingerprint profileId: "0104", deviceId: "0302", inClusters: "0000, 0003, FFFF, 0402, 0403, 0405", outClusters: "0000, 0004, FFFF", manufacturer: "LUMI", model: "lumi.weather", deviceJoinName: "Xiaomi Aqara Temp Sensor"
+        // 01 0104 5F01 01 06 0000 0003 FFFF 0402 0403 0405 03 0000 0004 FFFF
+   		fingerprint profileId: "0104", deviceId: "5F01", inClusters: "0000, 0003, FFFF, 0402, 0403, 0405", outClusters: "0000, 0004, FFFF", manufacturer: "LUMI", model: "lumi.weather", deviceJoinName: "Xiaomi Temperature Sensor"
 	}
 
 	// simulator metadata
 	simulator {
-		for (int i = 0; i <= 100; i += 10) {
-			status "${i}F": "temperature: $i F"
+        status "pressure": "read attr - raw: 314F0104031C000029F203140028FF1000297627, dni: 314F, endpoint: 01, cluster: 0403, size: 1C, attrId: 0000, encoding: 29, value: 2776290010ff28001403f2"
+		status "other attr": "read attr - raw: 314F010000200500420C6C756D692E77656174686572, dni:314F, endpoint:01, cluster:0000, size:20, attrId:0005, encoding:42, value:6C756D692E77656174686572"
+		status "battery": "catchall: 0104 0000 01 01 0100 00 314F 00 00 0000 0A 01 01FF42250121670C0421A81305210A00062401000200006429310A6521A01A662BA98A01000A210000"
+        				   
+        
+        for (int i = 0; i <= 100; i += 10) {
+			status "${i}C": "temperature: $i"
 		}
 
 		for (int i = 0; i <= 100; i += 10) {
@@ -53,10 +62,6 @@ metadata {
 		section {
 			input title: "Temperature Offset", description: "This feature allows you to correct any temperature variations by selecting an offset. Ex: If your sensor consistently reports a temp that's 5 degrees too warm, you'd enter '-5'. If 3 degrees too cold, enter '+3'. Please note, any changes will take effect only on the NEXT temperature change.", displayDuringSetup: false, type: "paragraph", element: "paragraph"
 			input "tempOffset", "number", title: "Degrees", description: "Adjust temperature by this many degrees", range: "*..*", displayDuringSetup: false
-        }
-        section {
-            input title: "Pressure Offset", description: "This feature allows you to correct any pressure variations by selecting an offset. Ex: If your sensor consistently reports a pressure that's 5 kPa too high, you'd enter '-5'. If 3 kPa too low, enter '+3'. Please note, any changes will take effect only on the NEXT pressure change.", displayDuringSetup: false, type: "paragraph", element: "paragraph"
-            input "pressOffset", "number", title: "kPa", description: "Adjust prssure by this many kPa", range: "*..*", displayDuringSetup: false
 		}
     }
     
@@ -67,18 +72,19 @@ metadata {
 			    attributeState("default", label:'${currentValue}°',
                 backgroundColors:[
 					[value: 0, color: "#153591"],
-					[value: 5, color: "#1e9cbb"],
-					[value: 10, color: "#90d2a7"],
-					[value: 15, color: "#44b621"],
-					[value: 20, color: "#f1d801"],
-					[value: 25, color: "#d04e00"],
-					[value: 30, color: "#bc2323"],
+					[value: 6, color: "#1e9cbb"],
+					[value: 15, color: "#90d2a7"],
+					[value: 23, color: "#44b621"],
+					[value: 28, color: "#f1d801"],
+					[value: 35, color: "#d04e00"],
+					[value: 36, color: "#bc2323"],
+                    [value: 31, color: "#153591"],
 					[value: 44, color: "#1e9cbb"],
 					[value: 59, color: "#90d2a7"],
 					[value: 74, color: "#44b621"],
 					[value: 84, color: "#f1d801"],
 					[value: 95, color: "#d04e00"],
-					[value: 96, color: "#bc2323"]                                      
+					[value: 96, color: "#bc2323"]                                    
 				]
 			)
             }
@@ -86,12 +92,13 @@ metadata {
     			attributeState("default", label:'Last Update: ${currentValue}', icon: "st.Health & Wellness.health9")
 			}
 		}
-		standardTile("humidity", "device.humidity", inactiveLabel: false, decoration: "flat", width: 2, height: 2) {
+       
+        standardTile("humidity", "device.humidity", inactiveLabel: false, decoration: "flat", width: 2, height: 2) {
 			state "default", label:'${currentValue}%', icon:"st.Weather.weather12"
 		}
-        
-        standardTile("pressure", "device.pressure", inactiveLabel: false, decoration: "flat", width: 2, height: 2) {
-			state "default", label:'${currentValue} kPa', icon:"st.Weather.weather1"
+                
+        valueTile("pressure", "device.pressure", decoration: "flat", inactiveLabel: false, width: 2, height: 2) {
+			state "default", label:'${currentValue} mbar', unit:""
 		}
         
         valueTile("battery", "device.battery", decoration: "flat", inactiveLabel: false, width: 2, height: 2) {
@@ -102,18 +109,19 @@ metadata {
 			state "default", label:'${currentValue}°', icon: "st.Weather.weather2",
                 backgroundColors:[
 					[value: 0, color: "#153591"],
-					[value: 5, color: "#1e9cbb"],
-					[value: 10, color: "#90d2a7"],
-					[value: 15, color: "#44b621"],
-					[value: 20, color: "#f1d801"],
-					[value: 25, color: "#d04e00"],
-					[value: 30, color: "#bc2323"],
+					[value: 6, color: "#1e9cbb"],
+					[value: 15, color: "#90d2a7"],
+					[value: 23, color: "#44b621"],
+					[value: 28, color: "#f1d801"],
+					[value: 35, color: "#d04e00"],
+					[value: 36, color: "#bc2323"], 
+                    [value: 31, color: "#153591"],
 					[value: 44, color: "#1e9cbb"],
 					[value: 59, color: "#90d2a7"],
 					[value: 74, color: "#44b621"],
 					[value: 84, color: "#f1d801"],
 					[value: 95, color: "#d04e00"],
-					[value: 96, color: "#bc2323"]                                      
+					[value: 96, color: "#bc2323"],                          
 				]
         }
 
@@ -122,152 +130,90 @@ metadata {
         }
             
 		main(["temperature2"])
-		details(["temperature", "battery", "humidity","pressure","refresh"])
+		details(["temperature", "battery", "humidity", "refresh", "pressure"])
 	}
 }
 
-def installed() {
-// Device wakes up every 1 hour, this interval allows us to miss one wakeup notification before marking offline
-	log.debug "Configured health checkInterval when installed()"
-	sendEvent(name: "checkInterval", value: 2 * 60 * 60 + 2 * 60, displayed: false, data: [protocol: "zigbee", hubHardwareId: device.hub.hardwareID])
+def parseHumidity(String humidityString){
+	def pct = (humidityString - "%").trim()
+
+    if (pct.isNumber()) {
+        return Math.round(new BigDecimal(pct)).toString()
+    }
+    
+    null
 }
 
-def updated() {
-// Device wakes up every 1 hours, this interval allows us to miss one wakeup notification before marking offline
-	log.debug "Configured health checkInterval when updated()"
-	sendEvent(name: "checkInterval", value: 2 * 60 * 60 + 2 * 60, displayed: false, data: [protocol: "zigbee", hubHardwareId: device.hub.hardwareID])
+def parseTemperature(String temperatureString){
+	def value = temperatureString.trim() as Float 
+        
+    if (getTemperatureScale() == "C") {
+        if (tempOffset) {
+            return (Math.round(value * 10)) / 10 + tempOffset as Float
+        } else {
+            return (Math.round(value * 10)) / 10 as Float
+        }            	
+    } else {
+        if (tempOffset) {
+            return (Math.round(value * 90/5)) / 10 + 32 + offset as Float
+        } else {
+            return (Math.round(value * 90/5)) / 10 + 32 as Float
+        }            	
+    }        
+}
+
+def parsePressure(String pressureString) { 
+	def value = pressureString.substring(pressureString.length()-4)
+    def actualValue = Integer.parseInt(value, 16)
+    log.debug "pressure: $actualValue mbar"
+    return actualValue
 }
 
 // Parse incoming device messages to generate events
 def parse(String description) {
-	def linkText = getLinkText(device)
-    log.debug "${linkText} Parsing: $description"
-	def name = parseName(description)
-    log.debug "${linkText} Parsename: $name"
-	def value = parseValue(description)
-    log.debug "${linkText} Parsevalue: $value"
-	def unit = (name == "temperature") ? getTemperatureScale() : ((name == "humidity") ? "%" : ((name == "pressure")? "kpa": null))
-	def result = createEvent(name: name, value: value, unit: unit)
-    log.debug "${linkText} Evencreated: $name, $value, $unit"
-	log.debug "${linkText} Parse returned: ${result?.descriptionText}"
-    def now = new Date().format("yyyy MMM dd EEE h:mm:ss a", location.timeZone)
-    sendEvent(name: "lastCheckin", value: now)
-	return result
-}
-
-private String parseName(String description) {
-
-
-	if (description?.startsWith("temperature: ")) {
-		return "temperature"
-        
-	} else if (description?.startsWith("humidity: ")) {
-		return "humidity"
-        
-	} else if (description?.startsWith("catchall: ")) {
-        return "battery"
-        
-	} else if (description?.startsWith("read attr - raw: "))
-    {
- 	   def attrId        
- 	   attrId = description.split(",").find {it.split(":")[0].trim() == "attrId"}?.split(":")[1].trim()
-
-		if(attrId == "0000")
-        {
-        	return "pressure"
-        
-    	} else if (attrId == "0005")
-        {
-        	return "model"
-        
-    	}
-    }
-	return null
-}
-
-private String parseValue(String description) {
-    def linkText = getLinkText(device)
+	def map = parseDescriptionAsMap(description)
+ 	log.debug "zigbeeMap: $map"
     
-	if (description?.startsWith("temperature: ")) {
-		def value = ((description - "temperature: ").trim()) as Float 
-        
-        if (value > 100)
-        {
-          value = 100.0 - value
-        }
-        
-        if (getTemperatureScale() == "C") {
-        	if (tempOffset) {
-				return (Math.round(value * 10))/ 10 + tempOffset as Float
-            } else {
-				return (Math.round(value * 10))/ 10 as Float
-			}            	
-		} else {
-        	if (tempOffset) {
-				return (Math.round(value * 90/5))/10 + 32 + offset as Float
-            } else {
-				return (Math.round(value * 90/5))/10 + 32 as Float
-			}            	
-		}        
-        
-	} else if (description?.startsWith("humidity: ")) {
-		def pct = (description - "humidity: " - "%").trim()
-        
-		if (pct.isNumber()) {
-			return Math.round(new BigDecimal(pct)).toString()
-		}
-	} else if (description?.startsWith("catchall: ")) {
-		return parseCatchAllMessage(description)
-        
-	}  else if (description?.startsWith("read attr - raw: ")){
-        return parseReadAttrMessage(description)
-        
-    }else {
-    log.debug "${linkText} unknown: $description"
-    sendEvent(name: "unknown", value: description)
-    }
-	null
-}
-
-private String parseReadAttrMessage(String description) {
-    def result = '--'
-    def cluster
-    def attrId
-    def value
-        
-    cluster = description.split(",").find {it.split(":")[0].trim() == "cluster"}?.split(":")[1].trim()
-    attrId = description.split(",").find {it.split(":")[0].trim() == "attrId"}?.split(":")[1].trim()
-    value = description.split(",").find {it.split(":")[0].trim() == "value"}?.split(":")[1].trim()
-    //log.debug "cluster: ${cluster}, attrId: ${attrId}, value: ${value}"
-    
-    if (cluster == "0403" && attrId == "0000") {
-         result = value[0..3]
-         int pressureval = Integer.parseInt(result, 16)
-         if (pressOffset)
-         {
-           result = ((pressureval/100) as Float) + pressOffset
-         }
-         else
-         {
-           result = (pressureval/100 as Float)
-         }
+    def unit = ""
+    if (map.temperature != null) {
+		log.debug "map temperature $map.temperature"
+        def value = parseTemperature(map.temperature)
+        return createEvent(name: "temperature", value: value, unit: getTemperatureScale())
     } 
-    else if (cluster == "0000" && attrId == "0005") 
-    {
-        for (int i = 0; i < value.length(); i+=2) 
-        {
-            def str = value.substring(i, i+2);
-            def NextChar = (char)Integer.parseInt(str, 16);
-            result = result + NextChar
-        }
+    else if (map.catchall != null) {
+ 		log.debug "map catchall $map.catchall"
+        def value = parseCatchAllMessage(description)
+  		log.debug "Battery: $value"
+       return createEvent(name: "battery", value: value, unit: "%")              
+	} 
+    else if (map.raw != null && map.cluster == "0403") {
+ 		log.debug "map pressure $map.raw"
+        
+		def value = parsePressure(map.value)
+        log.debug "Pressure: $value"
+        return createEvent(name: "pressure", value: value, unit: "mbar")
+	} 
+    else if (map.humidity != null) {
+ 		log.debug "map humidity $map.humidity"
+        
+ 		def value = parseHumidity(map.humidity)
+        return createEvent(name: "humidity", value: value, unit: "%")
+	}
+    else {
+    	log.debug "Unsupported cluster $map.cluster"
     }
-    return result
+    
+	def now = new Date().format("yyyy MMM dd EEE HH:mm:ss", location.timeZone)
+	sendEvent(name: "lastCheckin", value: now)
+ 
+ 	return null;
 }
+
 
 private String parseCatchAllMessage(String description) {
 	def result = '--'
 	def cluster = zigbee.parse(description)
-	log.debug cluster
+	log.debug "$cluster"
 	if (cluster) {
 		switch(cluster.clusterId) {
 			case 0x0000:
@@ -281,16 +227,14 @@ private String parseCatchAllMessage(String description) {
 
 
 private String getBatteryResult(rawValue) {
-	//log.debug 'Battery'
-	//def linkText = getLinkText(device)
-	//log.debug rawValue
+	def linkText = getLinkText(device)
 
 	def result =  '--'
     def maxBatt = 100
     def battLevel = Math.round(rawValue * 100 / 255)
 	
 	if (battLevel > maxBatt) {
-				battLevel = maxBatt
+		battLevel = maxBatt
     }
 
 	return battLevel
@@ -347,4 +291,15 @@ private byte[] reverseArray(byte[] array) {
 		i++;
 	}
 	return array
+}
+
+def parseDescriptionAsMap(description) {
+    (description - "read attr - ").split(",").inject([:]) { map, param ->
+        def nameAndValue = param.split(":")
+        if(nameAndValue.length == 2){
+	        map += [(nameAndValue[0].trim()):nameAndValue[1].trim()]
+        }else{
+        	map += []
+        }
+    }
 }
