@@ -11,9 +11,8 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- * Update by @jeromelaban:
- * Added Illuninance capability.
- * Lowered inactive motion timeout
+ * modified 20171101 jeromelaban
+ * Fixed detection for AQ2 models
  *
  * Based on original DH by Eric Maycock 2015
  * modified 29/12/2016 a4refillpad 
@@ -69,7 +68,7 @@ metadata {
             }
 		}
 		valueTile("Light", "device.illuminance", decoration: "flat", inactiveLabel: false, width: 2, height: 2){
-			state "Light", label:'${currentValue}% \nLight', unit: ""
+			state "Light", label:'${currentValue} lux \nLight', unit: ""
 		}
 		valueTile("battery", "device.battery", decoration: "flat", inactiveLabel: false, width: 2, height: 2) {
 			state "battery", label:'${currentValue}% battery', unit:""
@@ -274,7 +273,7 @@ private Map parseReportAttributeMessage(String description) {
     else if (descMap.cluster == "0406" && descMap.attrId == "0000") {
     	def value = descMap.value.endsWith("01") ? "active" : "inactive"
 	    sendEvent(name: "lastMotion", value: now)
-        if (settings.motionReset == null || settings.motionReset == "" ) settings.motionReset = 20
+        if (settings.motionReset == null || settings.motionReset == "" ) settings.motionReset = 60
         if (value == "active") runIn(settings.motionReset, stopMotion)
     	resultMap = getMotionResult(value)
     } 
