@@ -68,7 +68,7 @@ metadata {
             }
 		}
 		valueTile("Light", "device.illuminance", decoration: "flat", inactiveLabel: false, width: 2, height: 2){
-			state "Light", label:'${currentValue}% \nLight', unit: ""
+			state "Light", label:'${currentValue} lux \nLight', unit: ""
 		}
 		valueTile("battery", "device.battery", decoration: "flat", inactiveLabel: false, width: 2, height: 2) {
 			state "battery", label:'${currentValue}% battery', unit:""
